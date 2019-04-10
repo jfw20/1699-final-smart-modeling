@@ -4,11 +4,45 @@
         <link rel="stylesheet" type="text/css" href="css/styles.css">
         <script src="js/scripts.js" type="text/javascript" ></script>
         <script>
-            //setup goes here
+            // Setup goes here
+
+            // INITIALIZE GLOBALS
+
+            // INITIALIZE UPDATERS
+
+            // INITIALIZE CONDITIONAL RULES
+            /*
+            turnLightsOn = new Rule(
+                function(x, y){
+                    rv = []
+                    if(city[x][y] === 1){
+                        rv[0] = true;
+                    }
+                }
+            );
+
+            turnLightsOff = new Rule(
+                function(){
+                    rv = []
+                    if(city[x][y] === 2){
+                        rv[0] = true;
+                    }
+                }
+            )
+            */
+            // Board setup
+            generateBoard();
+            drawBoard();
         </script>
     </head>
-
     <body>
+        <p id="timer"></p>
+        <table id="inputs">
+
+        </table>
+        <!-- This area will be filled by scripts.js -->
+        <table id="visualizer"></table>
+        <table id="stats"></table>
     </body>  
     <script>
         //active code goes here
