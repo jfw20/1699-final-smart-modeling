@@ -4,13 +4,57 @@
         <link rel="stylesheet" type="text/css" href="css/styles.css">
         <script src="js/scripts.js" type="text/javascript" ></script>
         <script>
-            // Setup goes here
+            //Do not modify code in this script block!
+            statisticsGlobals = new Global(
+                function(){
+                    window.carbonFootPrint = 0;
+                    window.city = [];
+                    window.rules = [];
+                    window.updaters = [];
+                    window.ruleCount = 0;
+                    window.updaterCount = 0;
+                    window.delta = 1000;
+                    window.inputCellSize = 100;
+                }
+            )
+        </script>
+        <script>
+            // READ DIRECTIONS BEFORE ADDING CUSTOM CODE
 
-            // INITIALIZE GLOBALS
+            // Use custom map here, format is a 2d array of integers
+            /*  e.g.
+             *  city = [[0, 0, 0],
+                        [0, 0, 0]
+                        [0, 0, 0]]
+             */
+            city = [];
 
-            // INITIALIZE UPDATERS
+            /* In your code you may assume the following variables:  * * * * * * * * * * * * * * * * *
+             *      city[row][col]                                                                   *
+             *      rules[i]    Rule array, stores all rules                                         *
+             *      updaters[i] Updater array, stores all updaters                                   *
+             *      timer       int, stores how many ticks of delta length have passed               *
+             *      delta       float, length of time in ms to wait between updates                  *
+             *                                                                                       *
+             *      ***********                                                                      *
+             *      *IMPORTANT*                                                                      *
+             *      ***************************************************************************      *
+             *      * 1. Updaters/Rules should be made with no expectation of execution order *      *
+             *      * 2. Globals should be prefix'd with your decided unique module name      *      *
+             *      ***************************************************************************      *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-            // INITIALIZE CONDITIONAL RULES
+            // INITIALIZE GLOBALS (Create variables you can use in updaters/conditional rules)
+
+            lightsGlobals = new Global(
+                function(){
+                    window.lightsModuleTotalTime = 0;
+                }
+            )
+
+            // INITIALIZE UPDATERS (Runs every tick)
+
+            // INITIALIZE CONDITIONAL RULES (Logic that is checked on every cell)
             /*
             turnLightsOn = new Rule(
                 function(x, y){
@@ -31,8 +75,10 @@
             )
             */
             // Board setup
+            if(city.length > 0){
+                setCity(city)
+            }
             generateBoard();
-            drawBoard();
         </script>
     </head>
     <body>
@@ -46,5 +92,6 @@
     </body>  
     <script>
         //active code goes here
+        drawBoard();
     </script>
 </html>
