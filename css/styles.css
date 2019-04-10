@@ -1,0 +1,12 @@
+#visualizer {
+    border: 2px blue;
+    border-collapse: collapse;
+    background-color: yellow;
+}
+#timer {
+    text-align: left;
+}
+tr > .vCell{
+    border: 2px solid blue;
+    border-collapse: collapse;
+}
