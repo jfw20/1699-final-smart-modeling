@@ -66,13 +66,13 @@ setCity = (aCity) => {
 }
 
 setTDColor = (td, col, row) => {
-    td.style.color = "magenta";
+    td.style.backgroundColor = "yellow";
     return td;
 }
 
 setTDSize = (td, size) => {
-    td.style.height = size;
-    td.style.width = size;
+    td.style.height = size + "px";
+    td.style.width = size + "px";
     return td;
 }
 
@@ -80,6 +80,8 @@ setTDSize = (td, size) => {
  * Draw the current board to the screen
  */
 drawBoard = (...args) => {
+    console.log(city.length);
+    console.log(inputCellSize);
     table = document.getElementById("visualizer");
     tbody = document.createElement("tbody");
 
@@ -109,6 +111,8 @@ identifyObjects = () => {
 
 }
 
-updateBoard = (...args) => {
+updateBoard = () => {
     // Iterate through indexes by row and check conditions, if they need to be updated, update them
+    console.log(city.length);
+    console.log(inputCellSize);
 }

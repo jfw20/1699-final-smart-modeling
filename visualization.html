@@ -14,7 +14,7 @@
                     window.ruleCount = 0;
                     window.updaterCount = 0;
                     window.delta = 1000;
-                    window.inputCellSize = 100;
+                    window.inputCellSize = 15;
                 }
             )
         </script>
@@ -76,9 +76,10 @@
             */
             // Board setup
             if(city.length > 0){
-                setCity(city)
+                setCity(city);
+            }else{
+                generateBoard();
             }
-            generateBoard();
         </script>
     </head>
     <body>
