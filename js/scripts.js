@@ -1,8 +1,9 @@
-var city;
-var rules = [];
-var updaters = [];
-var ruleCount = 0;
-var updaterCount = 0;
+/*
+ * Created by Jeffrey Willis
+ * Visually focused Generalized Modeling framework for Smart Cities
+ * Made for CS1699: Smart Cities
+ * 4/19/2019
+ */
 
 /*
  * Global class which executes lambda to create global variable
@@ -29,7 +30,8 @@ function Rule(op){
 
 /*
  * Updater class used to repeatedly update custom variables
- * - Implements a single update method that will be called every delta time
+ * - Implements an update method that will be called every delta time
+ * - Update functions should only access variables that are known to exist
  */
 function Updater(op){
     this.update = () => {
@@ -39,6 +41,7 @@ function Updater(op){
 }
 
 generateBoard = () => {
+    console.log(carbonFootPrint);
     city = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -56,20 +59,40 @@ generateBoard = () => {
 }
 
 /*
+ * Called if user provides a city, otherwise default hardcoded city is used
+ */
+setCity = (aCity) => {
+    city = aCity;
+}
+
+setTDColor = (td, col, row) => {
+    td.style.color = "magenta";
+    return td;
+}
+
+setTDSize = (td, size) => {
+    td.style.height = size;
+    td.style.width = size;
+    return td;
+}
+
+/*
  * Draw the current board to the screen
  */
 drawBoard = (...args) => {
     table = document.getElementById("visualizer");
     tbody = document.createElement("tbody");
 
-    for(let i = 0; i < city.length; i++) {
+    for(let row = 0; row < city.length; row++) {
         tr = document.createElement("tr");
 
-        for(let k = 0; k < city[i].length; k++) {
+        for(let col = 0; col < city[row].length; col++) {
             td = document.createElement("td");
             td.className = "vCell";
             // Set cell color
             td.appendChild(document.createTextNode(" "));
+            td = setTDColor(td, col, row);
+            td = setTDSize(td, inputCellSize);
             tr.appendChild(td);
         }
 
@@ -87,5 +110,5 @@ identifyObjects = () => {
 }
 
 updateBoard = (...args) => {
-    // Iterate through indexes by row and 
+    // Iterate through indexes by row and check conditions, if they need to be updated, update them
 }
