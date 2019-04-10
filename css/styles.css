@@ -1,12 +1,18 @@
 #visualizer {
-    border: 2px blue;
     border-collapse: collapse;
     background-color: yellow;
+    margin-left: auto;
+    margin-right: auto;
 }
 #timer {
     text-align: left;
 }
+.body{
+    align-content: center;
+}
 tr > .vCell{
     border: 2px solid blue;
+    height: 30px;
+    width: 30px;
     border-collapse: collapse;
 }
