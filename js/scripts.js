@@ -5,6 +5,16 @@
  * 4/19/2019
  */
 
+var updaters = [];
+var updaterCount = 0;
+var setups = [];
+var setupCount = 0;
+var ranges = [];
+var rangeCount = 0;
+var currMaxRange = 0;
+var startTime;
+var elapsedTime = 0;
+
 /*
  * Global class which executes lambda to create global variable
  */
@@ -14,48 +24,105 @@ function Global(op){
 
 /*
  * Rule class used to standardize rules
- * - Additional rules are created by passing in a lamda function to a new rule object
- * - Lamda functions should evaluate conditions via an input board (2D int array) and pos [x, y], and return result
- * - Lambda function return result should fit format
- *      [<bool Condition: True/False>,
- *       <int Direction: -1:no movement 0:down 1:left 2:up 3:right>,
- *       <int Value: new value at new position (-1 for no change)>]
+ * @constructor
+ * @param {function()} op - Lamba function which determines logic of rule.
  */
-function Rule(op){
-    this.getResult = (x, y) => {
-        op(x, y);
+class Rule{
+    constructor(op){
+        this.op = op;
     }
-    rules[ruleCount++] = this;
+    getResult(...args){
+        return this.op(args);
+    }
+}
+
+/*
+ * ColorRange class used to synchronize IDS and colors
+ * - Takes in an html color, how many ids are required, and name of module it is used for
+ */
+class ColorRange{
+    constructor(color, numIDS, mod){
+        this.color = color;
+        this.min = currMaxRange;
+        this.mod = mod;
+        this.max = currMaxRange + numIDS;
+        currMaxRange += numIDS;
+        ranges[rangeCount++] = this;
+    }
+
+    getColor(){
+        return this.color;
+    }
+
+    inRange(i){
+        let rv = false;
+        if(i >= this.min && i < this.max){
+            rv = true;
+        }
+        return rv;
+    }
+
+    getStartID(){
+        return this.min;
+    }
+
+    getRange(){
+        return "Range: " + this.min + "->" + (this.max-1);
+    }
+
+    getMod(){
+        return this.mod;
+    }
+}
+
+/*
+ * Setup class used to setup a map based on module logic at beginning of execution
+ * @constructor
+ * @param {function()} op - Lamba expression used to setup map IDS appropriately.
+ */
+class Setup{
+    constructor(op){
+        this.op = op;
+        setups[setupCount++] = this;
+    }
+
+    set(row, col){
+        this.op(row, col);
+    }
 }
 
 /*
  * Updater class used to repeatedly update custom variables
  * - Implements an update method that will be called every delta time
+ * - Rule object should check for conditions in which update should run
  * - Update functions should only access variables that are known to exist
  */
-function Updater(op){
-    this.update = () => {
-        op();
+class Updater{
+    constructor(op){
+        this.op = op;
+        updaters[updaterCount++] = this;
     }
-    updaters[updaterCount++] = this;
+
+    update(row, col){
+        this.op(row, col);
+    }
 }
 
 generateBoard = () => {
-    console.log(carbonFootPrint);
-    city = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    city = [[11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],
+            [11, 20, 20, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 20, 20, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 20, 20, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 11],
+            [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]]
 }
 
 /*
@@ -65,24 +132,37 @@ setCity = (aCity) => {
     city = aCity;
 }
 
-setTDColor = (td, col, row) => {
-    td.style.backgroundColor = "yellow";
-    return td;
+setTime = () => {
+    startTime = new Date();
 }
 
-setTDSize = (td, size) => {
-    td.style.height = size + "px";
-    td.style.width = size + "px";
-    return td;
+/*
+ * Called once after board is drawn to run any custom user setups
+ */
+setupBoard = () => {
+    for(let row = 0; row < city.length; row++){
+        for(let col = 0; col < city[row].length; col++){
+            for(let i = 0; i < setups.length; i++){
+                setups[i].set(row, col);
+            }
+        }
+    }
+}
+
+updateInputs = () => {
+    delta = document.getElementById("deltaT").value;
+    timeStep = document.getElementById("stepT").value;
+    let s = document.getElementById("vCellSize").value;
+    if(s !== cellSize) updateSize();
+    cellSize = s;
 }
 
 /*
  * Draw the current board to the screen
  */
 drawBoard = (...args) => {
-    console.log(city.length);
-    console.log(inputCellSize);
     table = document.getElementById("visualizer");
+    table.innerHTML = "";
     tbody = document.createElement("tbody");
 
     for(let row = 0; row < city.length; row++) {
@@ -91,10 +171,11 @@ drawBoard = (...args) => {
         for(let col = 0; col < city[row].length; col++) {
             td = document.createElement("td");
             td.className = "vCell";
+            td.id = "" + row + "," + col;
             // Set cell color
             td.appendChild(document.createTextNode(" "));
-            td = setTDColor(td, col, row);
-            td = setTDSize(td, inputCellSize);
+            setTDColor(td, col, row);
+            setTDSize(td, cellSize);
             tr.appendChild(td);
         }
 
@@ -111,8 +192,149 @@ identifyObjects = () => {
 
 }
 
+/*
+ * Updates time
+ */
+updateTimer = () => {
+    let seconds = elapsedTime;
+    let minutes = Math.floor(seconds / 60);
+    let hours = Math.floor(minutes / 60);
+    minutes = minutes % 60;
+    seconds = seconds % 60;
+
+    let timer = document.getElementById("timer");
+
+    timer.innerHTML = "Time Elapsed: " + "Day: " + formatTime(hours, minutes, seconds);
+
+    elapsedTime += 1 * timeStep;
+    Math.round(elapsedTime);
+}
+
+updateStats = () => {
+    return;
+}
+
+updateVisualization = () => {
+    updateTimer();
+    updateBoard();
+    setTimeout(updateVisualization, delta);
+}
+
+updateSize = () => {
+    for(let row = 0; row < city.length; row++){
+        for(let col = 0; col < city[row].length; col++){
+            td = document.getElementById("" + row + "," + col);
+            setTDSize(td);
+        }
+    }
+}
+
 updateBoard = () => {
     // Iterate through indexes by row and check conditions, if they need to be updated, update them
-    console.log(city.length);
-    console.log(inputCellSize);
+    //for(let i = 0; i < timeStep; i++){
+        //stuff
+        for(let row = 0; row < city.length; row++){
+            for(let col = 0; col < city[row].length; col++){
+                for(let i = 0; i < updaters.length; i++){
+                    updaters[i].update(row, col);
+                }
+            }
+        }
+    //}
+}
+
+/*
+ * Helper Methods
+ */
+
+setTDColor = (td, col, row) => {
+    for(let i = 0; i < ranges.length; i++){
+        if(typeof(city[row][col]) === "object" && city[row][col] !== null){
+            cellID = city[row][col].getID();
+        }else{
+            cellID = city[row][col];
+        }
+        if(ranges[i].inRange(cellID)){
+            td.style.backgroundColor = ranges[i].getColor();
+            return;
+        }
+    }
+
+    //cellID error values are black
+    if(cellID = city[row][col] < 0){
+        td.style.backgroundColor = "black";
+    }else{
+        //non-handled error values are white
+        td.style.backgroundColor = "white";
+    }
+}
+
+setColor = (row, col, color) => {
+    td = document.getElementById("" + row + "," + col);
+    td.style.backgroundColor = color;
+}
+
+setID = (row, col, id) => {
+    city[row][col] = id;
+}
+
+setTDSize = (td, size) => {
+    td.style.height = size + "px";
+    td.style.width = size + "px";
+}
+
+alertRanges = () => {
+    let output = "Ranges of Modules:\n";
+    for(let i = 0; i < rangeCount; i++){
+        output += ranges[i].getMod() + " " + ranges[i].getRange() + "\n";
+    }
+    window.alert(output);
+}
+
+loadModules = () => {
+    let scr = document.getElementById("loadModules");
+    if(window.File && window.FileReader && window.FileList && window.Blob){
+        console.log("Great, let's do this");
+        var reader = new FileReader();
+    }else{
+        console.log("This browser is not supported.");
+    }
+    //loop through files in modules
+}
+
+formatTime = (hours, minutes, seconds) => {
+    let rv = "";
+
+    let day = Math.floor(hours / 24);
+    let TOD = "AM";
+
+    if(hours % 24 >= 12) TOD = "PM";
+    hours = hours % 12;
+    rv += day + " ";
+
+    if(hours < 10){
+        rv += "0" + hours;
+    }else{
+        rv += hours;
+    }
+
+    rv += ":";
+
+    if(minutes < 10){
+        rv += "0" + minutes;
+    }else{
+        rv += minutes;
+    }
+
+    rv += ":";
+
+    if(seconds < 10){
+        rv += "0" + seconds;
+    }else{
+        rv += seconds;
+    }
+
+    rv += " " + TOD;
+
+    return rv;
 }
