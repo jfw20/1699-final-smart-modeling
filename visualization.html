@@ -9,22 +9,22 @@
                 function(){
                     window.carbonFootPrint = 0;
                     window.city = [];
-                    window.rules = [];
-                    window.updaters = [];
-                    window.ruleCount = 0;
-                    window.updaterCount = 0;
                     window.delta = 1000;
-                    window.inputCellSize = 15;
+                    window.timeStep = 1;
+                    window.cellSize = 15;
                 }
             )
+            window.foliageIDRange = new ColorRange("green", 10, "foliage");
+            window.roadIDRange = new ColorRange("gray", 10, "roads");
+            window.buildingIDRange = new ColorRange("brown", 10, "buildings");
         </script>
         <script>
             // READ DIRECTIONS BEFORE ADDING CUSTOM CODE
 
-            // Use custom map here, format is a 2d array of integers
+            // Use custom map here, format is a 2d array of integers (or objects)
             /*  e.g.
              *  city = [[0, 0, 0],
-                        [0, 0, 0]
+                        [0, 0, 0],
                         [0, 0, 0]]
              */
             city = [];
@@ -44,36 +44,92 @@
              *      ***************************************************************************      *
              * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-            // INITIALIZE GLOBALS (Create variables you can use in updaters/conditional rules)
+            // INITIALIZE IDRanges (range of additional color and ids your module will need)
+            window.lightsOnIDRange = new ColorRange("yellow", 1, "lightsOff");
+            window.lightsOffIDRange = new ColorRange("black", 1, "lightsOn");
 
+            // INITIALIZE GLOBALS (Create variables you can use in updaters/conditional rules)
             lightsGlobals = new Global(
                 function(){
                     window.lightsModuleTotalTime = 0;
+                    window.lightsModuleLightFootprint = 0.01;
                 }
             )
-
-            // INITIALIZE UPDATERS (Runs every tick)
 
             // INITIALIZE CONDITIONAL RULES (Logic that is checked on every cell)
-            /*
             turnLightsOn = new Rule(
-                function(x, y){
-                    rv = []
-                    if(city[x][y] === 1){
-                        rv[0] = true;
+                function(id){
+                    if(lightsOffIDRange.inRange(id)){
+                        return true;
                     }
+                    return false;
                 }
-            );
+            )
 
             turnLightsOff = new Rule(
+                function(id){
+                    if(lightsOnIDRange.inRange(id)){
+                        return true;
+                    }
+                    return false;
+                }
+            )
+
+            nightTime = new Rule(
                 function(){
-                    rv = []
-                    if(city[x][y] === 2){
-                        rv[0] = true;
+                    let hours = Math.floor(elapsedTime / 60 / 60);
+                    let hourInDay = hours % 24;
+                    console.log(hourInDay);
+                    if(hourInDay < 6 || hourInDay > 19){
+                        return true;
+                    }
+                    return false;
+                }
+            )
+
+            // INITIALIZE SETUPS (Run once before visualization/simulation begins)
+
+            lightsSetup = new Setup(
+                function(row, col){
+                    let isBuilding = buildingIDRange.inRange(city[row][col]);
+                    let inBounds = row > 0 && row < city.length;
+                    inBounds &= city.length > 0 && col > 0 && col < city[0].length;
+                    if(isBuilding && inBounds){
+                        let above = buildingIDRange.inRange(city[row-1][col-1]);    // Above left
+                        above = above && buildingIDRange.inRange(city[row-1][col]);         // Above
+                        above = above && buildingIDRange.inRange(city[row-1][col+1]);       // Above right
+                        let curr = buildingIDRange.inRange(city[row][col-1]);         // Left
+                        curr = curr && buildingIDRange.inRange(city[row][col+1]);         // Right
+                        let below = buildingIDRange.inRange(city[row+1][col-1]);       // Below Left
+                        below = below && buildingIDRange.inRange(city[row+1][col]);       // Below
+                        below = below && buildingIDRange.inRange(city[row+1][col+1]);       // Below Left
+                        if(above && curr && below){
+                            setColor(row, col, "yellow");
+                            setID(row, col, lightsOnIDRange.getStartID());
+                        }
                     }
                 }
             )
-            */
+
+            // INITIALIZE UPDATERS (Run every tick, order execution may vary)
+
+            lightsUpdater = new Updater(
+                function(row, col){
+                    let id = city[row][col];
+                    if(turnLightsOn.getResult(id)){
+                        if(nightTime.getResult()){
+                            setColor(row, col, "yellow");
+                            setID(row, col, lightsOnIDRange.getStartID());   
+                        }
+                    }else if(turnLightsOff.getResult(id)){
+                        if(!nightTime.getResult()){
+                            setColor(row, col, "black");
+                            setID(row, col, lightsOffIDRange.getStartID());
+                        }
+                    }
+                }
+            )
+
             // Board setup
             if(city.length > 0){
                 setCity(city);
@@ -81,18 +137,62 @@
                 generateBoard();
             }
         </script>
+        <script id="moduleLoader">
+        </script>
     </head>
     <body>
         <p id="timer"></p>
-        <table id="inputs">
 
+        <table id="inputs">
+            <form>
+                <table>
+                    <tr>
+                        <td>
+                            <div>Time Delta: </div>
+                        </td>
+                        <td>
+                            <input type="number" name="time in ms" id="deltaT" value="1000"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div>Time Step: </div>
+                        </td>
+                        <td>
+                            <input type="number" name="time step in seconds" id="stepT" value="1"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div>Cell Size: </div>
+                        </td>
+                        <td>
+                            <input type="number" name="size as an integer" id="vCellSize" value="15"/>
+                        </td>
+                    </tr>
+                    <br/>
+                    <tr>
+                        <td>
+                            <input type="button" value="Update Settings" onclick="updateInputs()"/>
+                        </td>
+                        <td>
+                            <input type="button" value="See ID Ranges" onclick="alertRanges()"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
         </table>
+
         <!-- This area will be filled by scripts.js -->
         <table id="visualizer"></table>
         <table id="stats"></table>
     </body>  
     <script>
         //active code goes here
+        setTime();
         drawBoard();
+        loadModules();
+        setupBoard();
+        updateVisualization();
     </script>
 </html>
