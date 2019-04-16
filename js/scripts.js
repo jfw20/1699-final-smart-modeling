@@ -12,6 +12,8 @@ var setupCount = 0;
 var ranges = [];
 var rangeCount = 0;
 var currMaxRange = 0;
+var stats = [];
+var statCount = 0;
 var startTime;
 var elapsedTime = 0;
 
@@ -33,6 +35,17 @@ class Rule{
     }
     getResult(...args){
         return this.op(args);
+    }
+}
+
+class Stat{
+    constructor(name, val){
+        this.name = name;
+        this.val = val;
+        stats[statCount++] = this;
+    }
+    getStat(){
+        return [this.name, this.val()];
     }
 }
 
@@ -153,8 +166,10 @@ updateInputs = () => {
     delta = document.getElementById("deltaT").value;
     timeStep = document.getElementById("stepT").value;
     let s = document.getElementById("vCellSize").value;
-    if(s !== cellSize) updateSize();
-    cellSize = s;
+    if(s != cellSize){
+        cellSize = s;
+        updateSize();
+    }
 }
 
 /*
@@ -186,13 +201,6 @@ drawBoard = (...args) => {
 }
 
 /*
- * Create objects so we can track their updates
- */
-identifyObjects = () => {
-
-}
-
-/*
  * Updates time
  */
 updateTimer = () => {
@@ -210,25 +218,77 @@ updateTimer = () => {
     Math.round(elapsedTime);
 }
 
+/*
+ * Updates table of stats
+ */
 updateStats = () => {
-    return;
+    let s = document.getElementById("stats");
+    s.innerHTML = "";
+
+    let tbody = document.createElement("tbody");
+    let tr = document.createElement("tr");
+    let td = document.createElement("td");
+    td.appendChild(document.createTextNode("Carbon Neutral/Negative: "));
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.appendChild(document.createTextNode(" "));
+    if(Math.floor(100*carbonFootprint)/100 <= 0){
+        td.style.backgroundColor = "green";
+    }else{
+        td.style.backgroundColor = "red";
+    }
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    tr = document.createElement("tr");
+    td = document.createElement("td");
+    td.appendChild(document.createTextNode("Carbon Footprint:"));
+    tr.appendChild(td);
+    td = document.createElement("td");
+    td.appendChild(document.createTextNode("" + Math.floor(100*carbonFootprint)/100));
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+
+    // Add stats
+    for(let i = 0; i < statCount; i++){
+        let statRet = stats[i].getStat();
+        tr = document.createElement("tr");
+        td = document.createElement("td");
+        td.appendChild(document.createTextNode(statRet[0]));
+        tr.appendChild(td);
+        td = document.createElement("td");
+        td.appendChild(document.createTextNode(statRet[1]));
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+
+    s.appendChild(tbody);
 }
 
+/*
+ * Main
+ */
 updateVisualization = () => {
     updateTimer();
     updateBoard();
+    updateStats();
     setTimeout(updateVisualization, delta);
 }
 
+/*
+ * Updates sizes of cells
+ */
 updateSize = () => {
     for(let row = 0; row < city.length; row++){
         for(let col = 0; col < city[row].length; col++){
             td = document.getElementById("" + row + "," + col);
-            setTDSize(td);
+            setTDSize(td, cellSize);
         }
     }
 }
 
+/*
+ * Calls updaters against each cell
+ */
 updateBoard = () => {
     // Iterate through indexes by row and check conditions, if they need to be updated, update them
     //for(let i = 0; i < timeStep; i++){

@@ -7,7 +7,7 @@
             //Do not modify code in this script block!
             statisticsGlobals = new Global(
                 function(){
-                    window.carbonFootPrint = 0;
+                    window.carbonFootprint = 0;
                     window.city = [];
                     window.delta = 1000;
                     window.timeStep = 1;
@@ -47,14 +47,43 @@
             // INITIALIZE IDRanges (range of additional color and ids your module will need)
             window.lightsOnIDRange = new ColorRange("yellow", 1, "lightsOff");
             window.lightsOffIDRange = new ColorRange("black", 1, "lightsOn");
+            window.treesIDRange = new ColorRange("brown", 2, "trees");
+            window.leavesIDRange = new ColorRange("darkgreen", 1, "leaves");
 
             // INITIALIZE GLOBALS (Create variables you can use in updaters/conditional rules)
             lightsGlobals = new Global(
                 function(){
+                    window.lightsModuleTotalFootprint = 0;
                     window.lightsModuleTotalTime = 0;
-                    window.lightsModuleLightFootprint = 0.01;
+                    window.lightsModuleLightFootprint = .75;
                 }
             )
+
+            treeGlobals = new Global(
+                function(){
+                    window.treeModuleTotalFootprint = 0;
+                    window.newTreeFootprint = -0.1;
+                    window.grownTreeFootprint = -0.5;
+                    window.leafFootprint = -0.01;
+                }
+            )
+
+            // INITALIZE STATISTICS TO DISPLAY
+            lightTotalTimeStat = new Stat("Lights Total On Time:",
+                function(){
+                    return Math.floor(100*lightsModuleTotalTime)/100;
+                }
+            );
+            lightFootprintStat = new Stat("Light Footprint:",
+                function(){
+                    return Math.floor(100*lightsModuleTotalFootprint)/100;
+                }
+            );
+            treeFootprintStat = new Stat("Trees Footprint:",
+                function(){
+                    return Math.floor(100*treeModuleTotalFootprint)/100;
+                }
+            );
 
             // INITIALIZE CONDITIONAL RULES (Logic that is checked on every cell)
             turnLightsOn = new Rule(
@@ -79,8 +108,16 @@
                 function(){
                     let hours = Math.floor(elapsedTime / 60 / 60);
                     let hourInDay = hours % 24;
-                    console.log(hourInDay);
                     if(hourInDay < 6 || hourInDay > 19){
+                        return true;
+                    }
+                    return false;
+                }
+            )
+
+            growTree = new Rule(
+                function(id){
+                    if(treesIDRange.getStartID() == id && Math.floor(Math.random() * 10000) < 2){
                         return true;
                     }
                     return false;
@@ -93,7 +130,7 @@
                 function(row, col){
                     let isBuilding = buildingIDRange.inRange(city[row][col]);
                     let inBounds = row > 0 && row < city.length;
-                    inBounds &= city.length > 0 && col > 0 && col < city[0].length;
+                    inBounds = inBounds && city.length > 0 && col > 0 && col < city[0].length;
                     if(isBuilding && inBounds){
                         let above = buildingIDRange.inRange(city[row-1][col-1]);    // Above left
                         above = above && buildingIDRange.inRange(city[row-1][col]);         // Above
@@ -111,20 +148,108 @@
                 }
             )
 
+            treesSetup = new Setup(
+                function(row, col){
+                    const newTree = treesIDRange.getStartID();
+                    let isFoliage = foliageIDRange.inRange(city[row][col]);
+                    let inBounds = row > 0 && row < city.length;
+                    inBounds = inBounds && city.length > 0 && col > 0 && col < city[0].length;
+                    if(isFoliage && inBounds){
+                        let above = foliageIDRange.inRange(city[row-1][col-1]);    // Above left
+                        above = above && foliageIDRange.inRange(city[row-1][col]);         // Above
+                        above = above && foliageIDRange.inRange(city[row-1][col+1]);       // Above right
+                        let curr = foliageIDRange.inRange(city[row][col-1]);         // Left
+                        curr = curr && foliageIDRange.inRange(city[row][col+1]);         // Right
+                        let below = foliageIDRange.inRange(city[row+1][col-1]);       // Below Left
+                        below = below && foliageIDRange.inRange(city[row+1][col]);       // Below
+                        below = below && foliageIDRange.inRange(city[row+1][col+1]);       // Below Left
+                        if(above && curr && below && Math.floor(Math.random() * 50) < 2){
+                            setColor(row, col, "sienna");
+                            setID(row, col, newTree);
+                        }
+                    }
+                }
+            )
+
             // INITIALIZE UPDATERS (Run every tick, order execution may vary)
 
             lightsUpdater = new Updater(
                 function(row, col){
                     let id = city[row][col];
+                    if(lightsOnIDRange.inRange(id)){
+                        lightsModuleTotalTime++;
+                        lightsModuleTotalFootprint += lightsModuleLightFootprint;
+                        carbonFootprint += lightsModuleLightFootprint;
+                    }
                     if(turnLightsOn.getResult(id)){
                         if(nightTime.getResult()){
                             setColor(row, col, "yellow");
-                            setID(row, col, lightsOnIDRange.getStartID());   
+                            setID(row, col, lightsOnIDRange.getStartID());
                         }
                     }else if(turnLightsOff.getResult(id)){
                         if(!nightTime.getResult()){
                             setColor(row, col, "black");
                             setID(row, col, lightsOffIDRange.getStartID());
+                        }
+                    }
+                }
+            )
+
+            treeGrowthUpdater = new Updater(
+                function(row, col){
+                    const leaves = leavesIDRange.getStartID();
+                    const newTree = treesIDRange.getStartID();
+                    const grownTree = treesIDRange.getStartID()+1;
+                    let id = city[row][col];
+                    if(growTree.getResult(id)){
+                        setColor(row, col, "saddlebrown");
+                        setID(row, col, grownTree);
+                        console.log("Setting tree ID to " + grownTree);
+                        // Above
+                        if(foliageIDRange.inRange(city[row-1][col-1])){
+                            setColor(row-1, col-1, "darkgreen");
+                            setID(row-1, col-1, leaves);
+                        }
+                        if(foliageIDRange.inRange(city[row-1][col])){
+                            setColor(row-1, col, "darkgreen");
+                            setID(row-1, col, leaves);
+                        }
+                        if(foliageIDRange.inRange(city[row-1][col+1])){
+                            setColor(row-1, col+1, "darkgreen");
+                            setID(row-1, col+1, leaves);
+                        }
+                        // Curr
+                        if(foliageIDRange.inRange(city[row][col-1])){
+                            setColor(row, col-1, "darkgreen");
+                            setID(row, col-1, leaves);
+                        }
+                        if(foliageIDRange.inRange(city[row][col+1])){
+                            setColor(row, col+1, "darkgreen");
+                            setID(row, col+1, leaves);
+                        }
+                        // Below
+                        if(foliageIDRange.inRange(city[row+1][col-1])){
+                            setColor(row+1, col-1, "darkgreen");
+                            setID(row+1, col-1, leaves);
+                        }
+                        if(foliageIDRange.inRange(city[row+1][col])){
+                            setColor(row+1, col, "darkgreen");
+                            setID(row+1, col, leaves);
+                        }
+                        if(foliageIDRange.inRange(city[row+1][col+1])){
+                            setColor(row+1, col+1, "darkgreen");
+                            setID(row+1, col+1, leaves);
+                        }
+                    }else{
+                        if(newTree == id){
+                            treeModuleTotalFootprint += newTreeFootprint;
+                            carbonFootprint += newTreeFootprint;
+                        }else if(grownTree == id){
+                            treeModuleTotalFootprint += grownTreeFootprint;
+                            carbonFootprint += grownTreeFootprint;
+                        }else if(leaves == id){
+                            treeModuleTotalFootprint += leafFootprint;
+                            carbonFootprint += leafFootprint;
                         }
                     }
                 }
@@ -136,8 +261,6 @@
             }else{
                 generateBoard();
             }
-        </script>
-        <script id="moduleLoader">
         </script>
     </head>
     <body>
@@ -191,7 +314,6 @@
         //active code goes here
         setTime();
         drawBoard();
-        loadModules();
         setupBoard();
         updateVisualization();
     </script>
